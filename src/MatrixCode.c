@@ -6,7 +6,7 @@
 #define MY_UUID { 0x8B, 0x2A, 0x20, 0x41, 0x56, 0xC8, 0x4B, 0x9D, 0xAF, 0x7B, 0xE8, 0x89, 0x48, 0x96, 0xD6, 0x73 }
 PBL_APP_INFO(MY_UUID,
              "Matrix Code", "Jnm",
-             1, 2, /* App version */
+             1, 3, /* App version */
              DEFAULT_MENU_ICON,
              APP_INFO_WATCH_FACE);
 
@@ -48,6 +48,10 @@ char *glyphs[] = {
 	"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
 	"n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"
 };
+char *uppers[] = {
+	"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+	"N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
+};
 char *digits[] = { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
 char space[] = " ";
 
@@ -74,6 +78,12 @@ static inline void setCellDigit(int r, int c, int n) {
 static inline void setCellGlyph(int r, int c, int n) {
 	MatrixCell *cell = &(cells[r*NUM_COLS+c]);
 	text_layer_set_text(&(cell->textLayer), glyphs[n]);
+}
+
+static inline void setCellChar(int r, int c, char t) {
+	MatrixCell *cell = &(cells[r*NUM_COLS+c]);
+	text_layer_set_text(&(cell->textLayer), uppers[t - 'A']);
+	cell->step = NUM_BMP+1;
 }
 
 static inline void setCellBitmap(int r, int c, GBitmap *bmp) {
@@ -184,6 +194,25 @@ void handle_init(AppContextRef ctx) {
 		cells[M_ROWS*NUM_COLS+x].step = -1;
 	}
 	
+	// Start with a nice Splash Screen
+	setCellChar(0, 0, 'M');
+	setCellChar(0, 1, 'A');
+	setCellChar(0, 2, 'T');
+	setCellChar(0, 3, 'R');
+	setCellChar(0, 4, 'I');
+	setCellChar(0, 5, 'X');
+	
+	setCellChar(1, NUM_COLS-4, 'C');
+	setCellChar(1, NUM_COLS-3, 'O');
+	setCellChar(1, NUM_COLS-2, 'D');
+	setCellChar(1, NUM_COLS-1, 'E');
+
+	setCellChar(NUM_ROWS-1, NUM_COLS-6, 'B');
+	setCellChar(NUM_ROWS-1, NUM_COLS-5, 'Y');
+	setCellChar(NUM_ROWS-1, NUM_COLS-3, 'J');
+	setCellChar(NUM_ROWS-1, NUM_COLS-2, 'N');
+	setCellChar(NUM_ROWS-1, NUM_COLS-1, 'M');
+
 	last.tm_min = -1;
 	setHour();
 }

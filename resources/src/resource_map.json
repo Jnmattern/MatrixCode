@@ -4,9 +4,9 @@
 	[
 	 {
 	 "type":     "font",
-	 "characterRegex": "[ 0-9a-z]",
+	 "characterRegex": "[ 0-9a-zA-Z]",
 	 "defName":  "FONT_MATRIX_23",
-	 "file":     "fonts/MatrixCodeNFI-subset.ttf"
+	 "file":     "fonts/MatrixCodeNFI-subset-with-uppercase.ttf"
 	 },
 	 {
 	 "type":     "png",
