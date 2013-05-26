@@ -1,0 +1,48 @@
+{"friendlyVersion": "1.0",
+	"versionDefName": "APP_RESOURCES",
+	"media":
+	[
+	 {
+	 "type":     "font",
+	 "characterRegex": "[ 0-9a-z]",
+	 "defName":  "FONT_MATRIX_23",
+	 "file":     "fonts/MatrixCodeNFI-subset.ttf"
+	 },
+	 {
+	 "type":     "png",
+	 "defName":  "IMAGE_B1",
+	 "file":     "images/b1.png"
+	 },
+	 {
+	 "type":     "png",
+	 "defName":  "IMAGE_B2",
+	 "file":     "images/b2.png"
+	 },
+	 {
+	 "type":     "png",
+	 "defName":  "IMAGE_B3",
+	 "file":     "images/b3.png"
+	 },
+	 {
+	 "type":     "png",
+	 "defName":  "IMAGE_B4",
+	 "file":     "images/b4.png"
+	 },
+	 {
+	 "type":     "png",
+	 "defName":  "IMAGE_B5",
+	 "file":     "images/b5.png"
+	 },
+	 {
+	 "type":     "png",
+	 "defName":  "IMAGE_B6",
+	 "file":     "images/b6.png"
+	 },
+	 {
+	 "type":     "png",
+	 "defName":  "IMAGE_B7",
+	 "file":     "images/b7.png"
+	 }
+	 
+	 ]
+}
