@@ -6,7 +6,7 @@
 #define MY_UUID { 0x8B, 0x2A, 0x20, 0x41, 0x56, 0xC8, 0x4B, 0x9D, 0xAF, 0x7B, 0xE8, 0x89, 0x48, 0x96, 0xD6, 0x73 }
 PBL_APP_INFO(MY_UUID,
              "Matrix Code", "Jnm",
-             1, 0, /* App version */
+             1, 1, /* App version */
              DEFAULT_MENU_ICON,
              APP_INFO_WATCH_FACE);
 
@@ -24,7 +24,7 @@ const int bmpId[NUM_BMP] = {
 	RESOURCE_ID_IMAGE_B7
 };
 
-#define MAX_NUM_NEW_CELLS 5
+#define MAX_NEW_CELLS 3
 
 Window window;
 bool clock12;
@@ -36,15 +36,15 @@ typedef struct {
 	int step;
 } MatrixCell;
 
-static MatrixCell cells[NUM_ROWS][NUM_COLS];
-static int dx, dy, cellWidth, cellHeight;
-static GFont customFont;
-static int32_t rand_seed = 3;
-static PblTm now, last;
-static HeapBitmap bmp[NUM_BMP];
-static int M_ROWS = NUM_ROWS/2;
-static int M_COLS = NUM_COLS/2;
-static GRect bmpRect;
+MatrixCell cells[NUM_ROWS*NUM_COLS];
+int dx, dy, cellWidth, cellHeight;
+GFont customFont;
+int32_t rand_seed = 3;
+PblTm now, last;
+HeapBitmap bmp[NUM_BMP];
+int M_ROWS = NUM_ROWS/2;
+int M_COLS = NUM_COLS/2;
+GRect bmpRect;
 
 static inline void set_random_seed(int32_t seed) {
 	rand_seed = (seed & 32767);
@@ -56,16 +56,21 @@ static int random(int max) {
 	return (rand_seed%max);
 }
 
-static inline void setCellText(MatrixCell *cell, char t) {
+static inline void setCellText(int r, int c, char t) {
+	MatrixCell *cell = &(cells[r*NUM_COLS+c]);
 	cell->text[0] = t;
-	text_layer_set_text(&cell->textLayer, cell->text);
+	text_layer_set_text(&(cell->textLayer), cell->text);
+}
+
+static inline void setCellBitmap(int r, int c, GBitmap *bmp) {
+	bitmap_layer_set_bitmap(&(cells[r*NUM_COLS+c].bitmapLayer), bmp);
 }
 
 static void setHour() {
-	setCellText(&cells[M_ROWS][M_COLS-2], '0' + now.tm_hour/10);
-	setCellText(&cells[M_ROWS][M_COLS-1], '0' + now.tm_hour%10);
-	setCellText(&cells[M_ROWS][M_COLS+1], '0' + now.tm_min/10);
-	setCellText(&cells[M_ROWS][M_COLS+2], '0' + now.tm_min%10);
+	setCellText(M_ROWS, M_COLS-2, '0' + now.tm_hour/10);
+	setCellText(M_ROWS, M_COLS-1, '0' + now.tm_hour%10);
+	setCellText(M_ROWS, M_COLS+1, '0' + now.tm_min/10);
+	setCellText(M_ROWS, M_COLS+2, '0' + now.tm_min%10);
 }
 
 void handle_tick(AppContextRef ctx, PebbleTickEvent *e) {
@@ -74,51 +79,47 @@ void handle_tick(AppContextRef ctx, PebbleTickEvent *e) {
 	
 	now = *(e->tick_time);
 	
-	if (now.tm_min != last.tm_min) {
-		setHour();
-	}
-	
 	for (r=0; r<NUM_ROWS; r++) {
 		for (c=0; c<NUM_COLS; c++) {
-			cell = &cells[r][c];
+			cell = &(cells[r*NUM_COLS+c]);
 			if (cell->step > 0) {
-				cell->step--;
+				cell->step = cell->step - 1;
 				if (cell->step == 0) {
-					bitmap_layer_set_bitmap(&cell->bitmapLayer, NULL);
-					setCellText(cell, ' ');
+					setCellBitmap(r, c, NULL);
+					setCellText(r, c, ' ');
 				} else {
-					bitmap_layer_set_bitmap(&cell->bitmapLayer, &bmp[cell->step-1].bmp);
+					setCellBitmap(r, c, &(bmp[cell->step-1].bmp));
 				}
 			}
 		}
 	}
 	
-	max = 1+random(MAX_NUM_NEW_CELLS);
+	max = 1+random(MAX_NEW_CELLS);
 	for (i=0; i<max; i++) {
 		r = random(NUM_ROWS);
 		c = random(NUM_COLS);
-		while (cells[r][c].step < 0) {
-			r = random(NUM_ROWS);
-			c = random(NUM_COLS);
+		
+		if (cells[r*NUM_COLS+c].step == 0) {
+			cells[r*NUM_COLS+c].step = NUM_BMP+1;
+			setCellText(r, c, 'a' + random(26));
+			setCellBitmap(r, c, NULL);
 		}
-		cells[r][c].step = NUM_BMP+1;
-		setCellText(&cells[r][c], 'a' + random(26));
-		bitmap_layer_set_bitmap(&cells[r][c].bitmapLayer, NULL);
 	}
+
+	if (now.tm_min != last.tm_min) {
+		setHour();
+	}
+	
 	last = now;
 }
 
 void initCell(int col, int row) {
 	GRect rect = GRect(dx + col * cellWidth, dy + row * cellHeight, cellWidth, cellHeight);
-	MatrixCell *cell = &cells[row][col];
-	TextLayer *t = &cell->textLayer;
-	BitmapLayer *b = &cell->bitmapLayer;
+	MatrixCell *cell = &(cells[row*NUM_COLS+col]);
+	TextLayer *t = &(cell->textLayer);
+	BitmapLayer *b = &(cell->bitmapLayer);
 	
-	if ((row == M_ROWS) && (col >= M_COLS-2) && (col <= M_COLS+2)) {
-		cell->step = -1;
-	} else {
-		cell->step = 0;
-	}
+	cell->step = 0;
 	
 	text_layer_init(t, rect);
 	text_layer_set_font(t, customFont);
@@ -126,7 +127,7 @@ void initCell(int col, int row) {
 	text_layer_set_text_color(t, GColorWhite);
 	text_layer_set_text_alignment(t, GTextAlignmentCenter);
 	layer_add_child(&window.layer, &t->layer);
-	setCellText(cell, ' ');
+	setCellText(row, col, ' ');
 	
 	bitmap_layer_init(b, rect);
 	bitmap_layer_set_compositing_mode(b, GCompOpAnd);
@@ -162,6 +163,11 @@ void handle_init(AppContextRef ctx) {
 		for (x=0; x<NUM_COLS; x++) {
 			initCell(x, y);
 		}
+	}
+	
+	// Reserve cells for displaying hour
+	for (x=M_COLS-2; x<=M_COLS+2; x++) {
+		cells[M_ROWS*NUM_COLS+x].step = -1;
 	}
 	
 	last.tm_min = -1;
