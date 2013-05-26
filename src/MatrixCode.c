@@ -6,7 +6,7 @@
 #define MY_UUID { 0x8B, 0x2A, 0x20, 0x41, 0x56, 0xC8, 0x4B, 0x9D, 0xAF, 0x7B, 0xE8, 0x89, 0x48, 0x96, 0xD6, 0x73 }
 PBL_APP_INFO(MY_UUID,
              "Matrix Code", "Jnm",
-             1, 1, /* App version */
+             1, 2, /* App version */
              DEFAULT_MENU_ICON,
              APP_INFO_WATCH_FACE);
 
@@ -30,7 +30,6 @@ Window window;
 bool clock12;
 
 typedef struct {
-	char text[2];
 	TextLayer textLayer;
 	BitmapLayer bitmapLayer;
 	int step;
@@ -45,6 +44,12 @@ HeapBitmap bmp[NUM_BMP];
 int M_ROWS = NUM_ROWS/2;
 int M_COLS = NUM_COLS/2;
 GRect bmpRect;
+char *glyphs[] = {
+	"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
+	"n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"
+};
+char *digits[] = { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+char space[] = " ";
 
 static inline void set_random_seed(int32_t seed) {
 	rand_seed = (seed & 32767);
@@ -56,10 +61,19 @@ static int random(int max) {
 	return (rand_seed%max);
 }
 
-static inline void setCellText(int r, int c, char t) {
+static inline void setCellEmpty(int r, int c) {
 	MatrixCell *cell = &(cells[r*NUM_COLS+c]);
-	cell->text[0] = t;
-	text_layer_set_text(&(cell->textLayer), cell->text);
+	text_layer_set_text(&(cell->textLayer), space);
+}
+
+static inline void setCellDigit(int r, int c, int n) {
+	MatrixCell *cell = &(cells[r*NUM_COLS+c]);
+	text_layer_set_text(&(cell->textLayer), digits[n]);
+}
+
+static inline void setCellGlyph(int r, int c, int n) {
+	MatrixCell *cell = &(cells[r*NUM_COLS+c]);
+	text_layer_set_text(&(cell->textLayer), glyphs[n]);
 }
 
 static inline void setCellBitmap(int r, int c, GBitmap *bmp) {
@@ -67,10 +81,10 @@ static inline void setCellBitmap(int r, int c, GBitmap *bmp) {
 }
 
 static void setHour() {
-	setCellText(M_ROWS, M_COLS-2, '0' + now.tm_hour/10);
-	setCellText(M_ROWS, M_COLS-1, '0' + now.tm_hour%10);
-	setCellText(M_ROWS, M_COLS+1, '0' + now.tm_min/10);
-	setCellText(M_ROWS, M_COLS+2, '0' + now.tm_min%10);
+	setCellDigit(M_ROWS, M_COLS-2, now.tm_hour/10);
+	setCellDigit(M_ROWS, M_COLS-1, now.tm_hour%10);
+	setCellDigit(M_ROWS, M_COLS+1, now.tm_min/10);
+	setCellDigit(M_ROWS, M_COLS+2, now.tm_min%10);
 }
 
 void handle_tick(AppContextRef ctx, PebbleTickEvent *e) {
@@ -86,7 +100,7 @@ void handle_tick(AppContextRef ctx, PebbleTickEvent *e) {
 				cell->step = cell->step - 1;
 				if (cell->step == 0) {
 					setCellBitmap(r, c, NULL);
-					setCellText(r, c, ' ');
+					setCellEmpty(r, c);
 				} else {
 					setCellBitmap(r, c, &(bmp[cell->step-1].bmp));
 				}
@@ -101,7 +115,7 @@ void handle_tick(AppContextRef ctx, PebbleTickEvent *e) {
 		
 		if (cells[r*NUM_COLS+c].step == 0) {
 			cells[r*NUM_COLS+c].step = NUM_BMP+1;
-			setCellText(r, c, 'a' + random(26));
+			setCellGlyph(r, c, random(26));
 			setCellBitmap(r, c, NULL);
 		}
 	}
@@ -127,10 +141,10 @@ void initCell(int col, int row) {
 	text_layer_set_text_color(t, GColorWhite);
 	text_layer_set_text_alignment(t, GTextAlignmentCenter);
 	layer_add_child(&window.layer, &t->layer);
-	setCellText(row, col, ' ');
+	setCellEmpty(row, col);
 	
 	bitmap_layer_init(b, rect);
-	bitmap_layer_set_compositing_mode(b, GCompOpAnd);
+	bitmap_layer_set_compositing_mode(b, GCompOpClear);
 	layer_add_child(&window.layer, &b->layer);
 }
 
