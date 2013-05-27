@@ -6,12 +6,12 @@
 #define MY_UUID { 0x8B, 0x2A, 0x20, 0x41, 0x56, 0xC8, 0x4B, 0x9D, 0xAF, 0x7B, 0xE8, 0x89, 0x48, 0x96, 0xD6, 0x73 }
 PBL_APP_INFO(MY_UUID,
              "Matrix Code", "Jnm",
-             1, 5, /* App version */
-             DEFAULT_MENU_ICON,
+             1, 6, /* App version */
+             RESOURCE_ID_IMAGE_MENU_ICON,
              APP_INFO_WATCH_FACE);
 
-#define STRAIGHT_DIGITS false
-#define BLINKING_SEMICOLON false
+#define STRAIGHT_DIGITS true
+#define BLINKING_SEMICOLON true
 
 #define SCREENW 144
 #define SCREENH 168
@@ -89,10 +89,14 @@ static inline void setCellGlyph(int r, int c, int n) {
 	text_layer_set_text(&(cell->textLayer), glyphs[n]);
 }
 
-static inline void setCellChar(int r, int c, char t) {
+static inline void setCellChar(int r, int c, char t, int s) {
 	MatrixCell *cell = &(cells[r*NUM_COLS+c]);
-	text_layer_set_text(&(cell->textLayer), uppers[t - 'A']);
-	cell->step = NUM_BMP+1;
+	if (t == ' ') {
+		text_layer_set_text(&(cell->textLayer), space);
+	} else {
+		text_layer_set_text(&(cell->textLayer), uppers[t - 'A']);
+	}
+	cell->step = s;
 }
 
 static inline void setCellBitmap(int r, int c, GBitmap *bmp) {
@@ -127,7 +131,7 @@ void handle_tick(AppContextRef ctx, PebbleTickEvent *e) {
 					setCellBitmap(r, c, NULL);
 					setCellEmpty(r, c);
 				} else {
-					setCellBitmap(r, c, &(bmp[cell->step-1].bmp));
+					if (cell->step <= NUM_BMP) setCellBitmap(r, c, &(bmp[cell->step-1].bmp));
 				}
 			}
 		}
@@ -227,23 +231,25 @@ void handle_init(AppContextRef ctx) {
 	text_layer_set_font(&(cells[M_ROWS*NUM_COLS+M_COLS].textLayer), digitFont);
 	
 	// Start with a nice Splash Screen
-	setCellChar(0, 0, 'M');
-	setCellChar(0, 1, 'A');
-	setCellChar(0, 2, 'T');
-	setCellChar(0, 3, 'R');
-	setCellChar(0, 4, 'I');
-	setCellChar(0, 5, 'X');
+	setCellChar(0, 0, 'M', NUM_BMP+1);
+	setCellChar(0, 1, 'A', NUM_BMP+2);
+	setCellChar(0, 2, 'T', NUM_BMP+3);
+	setCellChar(0, 3, 'R', NUM_BMP+4);
+	setCellChar(0, 4, 'I', NUM_BMP+5);
+	setCellChar(0, 5, 'X', NUM_BMP+4);
+	setCellChar(0, 6, ' ', NUM_BMP+3);
+	setCellChar(0, 7, 'B', NUM_BMP+2);
+	setCellChar(0, 8, 'Y', NUM_BMP+1);
 	
-	setCellChar(1, 0, 'C');
-	setCellChar(1, 1, 'O');
-	setCellChar(1, 2, 'D');
-	setCellChar(1, 3, 'E');
-
-	setCellChar(NUM_ROWS-2, NUM_COLS-2, 'B');
-	setCellChar(NUM_ROWS-2, NUM_COLS-1, 'Y');
-	setCellChar(NUM_ROWS-1, NUM_COLS-3, 'J');
-	setCellChar(NUM_ROWS-1, NUM_COLS-2, 'N');
-	setCellChar(NUM_ROWS-1, NUM_COLS-1, 'M');
+	setCellChar(1, 0, 'C', NUM_BMP+1);
+	setCellChar(1, 1, 'O', NUM_BMP+2);
+	setCellChar(1, 2, 'D', NUM_BMP+3);
+	setCellChar(1, 3, 'E', NUM_BMP+4);
+	setCellChar(1, 4, ' ', NUM_BMP+5);
+	setCellChar(1, 5, ' ', NUM_BMP+4);
+	setCellChar(1, 6, 'J', NUM_BMP+3);
+	setCellChar(1, 7, 'N', NUM_BMP+2);
+	setCellChar(1, 8, 'M', NUM_BMP+1);
 
 	last.tm_min = -1;
 	setHour();

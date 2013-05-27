@@ -3,6 +3,11 @@
 	"media":
 	[
 	 {
+	 "type":     "png",
+	 "defName":  "IMAGE_MENU_ICON",
+	 "file":     "images/menu_icon.png"
+	 },
+	 {
 	 "type":     "font",
 	 "characterRegex": "[ 0-9a-zA-Z]",
 	 "defName":  "FONT_MATRIX_23",
