@@ -9,6 +9,12 @@
 	 "file":     "fonts/MatrixCodeNFI-subset-with-uppercase.ttf"
 	 },
 	 {
+	 "type":     "font",
+	 "characterRegex": "[: 0-9]",
+	 "defName":  "FONT_SOURCECODE_23",
+	 "file":     "fonts/SourceCodePro-Semibold.ttf"
+	 },
+	 {
 	 "type":     "png",
 	 "defName":  "IMAGE_B1",
 	 "file":     "images/b1.png"

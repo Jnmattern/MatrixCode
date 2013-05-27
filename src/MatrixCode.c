@@ -6,9 +6,12 @@
 #define MY_UUID { 0x8B, 0x2A, 0x20, 0x41, 0x56, 0xC8, 0x4B, 0x9D, 0xAF, 0x7B, 0xE8, 0x89, 0x48, 0x96, 0xD6, 0x73 }
 PBL_APP_INFO(MY_UUID,
              "Matrix Code", "Jnm",
-             1, 3, /* App version */
+             1, 5, /* App version */
              DEFAULT_MENU_ICON,
              APP_INFO_WATCH_FACE);
+
+#define STRAIGHT_DIGITS false
+#define BLINKING_SEMICOLON false
 
 #define SCREENW 144
 #define SCREENH 168
@@ -37,7 +40,7 @@ typedef struct {
 
 MatrixCell cells[NUM_ROWS*NUM_COLS];
 int dx, dy, cellWidth, cellHeight;
-GFont customFont;
+GFont matrixFont, digitFont;
 int32_t rand_seed = 3;
 PblTm now, last;
 HeapBitmap bmp[NUM_BMP];
@@ -54,6 +57,7 @@ char *uppers[] = {
 };
 char *digits[] = { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
 char space[] = " ";
+char semicolon[] = ":";
 
 static inline void set_random_seed(int32_t seed) {
 	rand_seed = (seed & 32767);
@@ -68,6 +72,11 @@ static int random(int max) {
 static inline void setCellEmpty(int r, int c) {
 	MatrixCell *cell = &(cells[r*NUM_COLS+c]);
 	text_layer_set_text(&(cell->textLayer), space);
+}
+
+static inline void setCellSemiColon(int r, int c) {
+	MatrixCell *cell = &(cells[r*NUM_COLS+c]);
+	text_layer_set_text(&(cell->textLayer), semicolon);
 }
 
 static inline void setCellDigit(int r, int c, int n) {
@@ -91,8 +100,14 @@ static inline void setCellBitmap(int r, int c, GBitmap *bmp) {
 }
 
 static void setHour() {
-	setCellDigit(M_ROWS, M_COLS-2, now.tm_hour/10);
-	setCellDigit(M_ROWS, M_COLS-1, now.tm_hour%10);
+	int h = now.tm_hour;
+
+	if (clock12) {
+		h = h%12;
+		if (h == 0) h = 12;
+	}
+	setCellDigit(M_ROWS, M_COLS-2, h/10);
+	setCellDigit(M_ROWS, M_COLS-1, h%10);
 	setCellDigit(M_ROWS, M_COLS+1, now.tm_min/10);
 	setCellDigit(M_ROWS, M_COLS+2, now.tm_min%10);
 }
@@ -134,6 +149,13 @@ void handle_tick(AppContextRef ctx, PebbleTickEvent *e) {
 		setHour();
 	}
 	
+#if BLINKING_SEMICOLON
+	if (now.tm_sec%2) {
+		setCellEmpty(M_ROWS, M_COLS);
+	} else {
+		setCellSemiColon(M_ROWS, M_COLS);
+	}
+#endif
 	last = now;
 }
 
@@ -146,7 +168,7 @@ void initCell(int col, int row) {
 	cell->step = 0;
 	
 	text_layer_init(t, rect);
-	text_layer_set_font(t, customFont);
+	text_layer_set_font(t, matrixFont);
 	text_layer_set_background_color(t, GColorBlack);
 	text_layer_set_text_color(t, GColorWhite);
 	text_layer_set_text_alignment(t, GTextAlignmentCenter);
@@ -160,6 +182,7 @@ void initCell(int col, int row) {
 
 void handle_init(AppContextRef ctx) {
 	int x, y;
+	MatrixCell *cell;
 	
 	window_init(&window, "Matrix Code");
 	window_stack_push(&window, true /* Animated */);
@@ -168,7 +191,8 @@ void handle_init(AppContextRef ctx) {
     // Init resources
     resource_init_current_app(&APP_RESOURCES);
 
-	customFont = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_MATRIX_23));
+	matrixFont = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_MATRIX_23));
+	digitFont = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_SOURCECODE_23));
 	
 	cellWidth = SCREENW / NUM_COLS;
 	cellHeight = SCREENH / NUM_ROWS;
@@ -179,6 +203,8 @@ void handle_init(AppContextRef ctx) {
 	get_time(&now);
 	set_random_seed(now.tm_yday*86400+now.tm_hour*3600+now.tm_min*60+now.tm_sec);
 	
+	clock12 = !clock_is_24h_style();
+
 	for (x=0; x<NUM_BMP; x++) {
 		heap_bitmap_init(&bmp[x], bmpId[x]);
 	}
@@ -191,8 +217,14 @@ void handle_init(AppContextRef ctx) {
 	
 	// Reserve cells for displaying hour
 	for (x=M_COLS-2; x<=M_COLS+2; x++) {
-		cells[M_ROWS*NUM_COLS+x].step = -1;
+		cell = &(cells[M_ROWS*NUM_COLS+x]);
+		cell->step = -1;
+#if STRAIGHT_DIGITS
+		text_layer_set_font(&cell->textLayer, digitFont);
+#endif
 	}
+	// Set Font for the semicolon as the MatrixFont doesn't have it
+	text_layer_set_font(&(cells[M_ROWS*NUM_COLS+M_COLS].textLayer), digitFont);
 	
 	// Start with a nice Splash Screen
 	setCellChar(0, 0, 'M');
@@ -202,13 +234,13 @@ void handle_init(AppContextRef ctx) {
 	setCellChar(0, 4, 'I');
 	setCellChar(0, 5, 'X');
 	
-	setCellChar(1, NUM_COLS-4, 'C');
-	setCellChar(1, NUM_COLS-3, 'O');
-	setCellChar(1, NUM_COLS-2, 'D');
-	setCellChar(1, NUM_COLS-1, 'E');
+	setCellChar(1, 0, 'C');
+	setCellChar(1, 1, 'O');
+	setCellChar(1, 2, 'D');
+	setCellChar(1, 3, 'E');
 
-	setCellChar(NUM_ROWS-1, NUM_COLS-6, 'B');
-	setCellChar(NUM_ROWS-1, NUM_COLS-5, 'Y');
+	setCellChar(NUM_ROWS-2, NUM_COLS-2, 'B');
+	setCellChar(NUM_ROWS-2, NUM_COLS-1, 'Y');
 	setCellChar(NUM_ROWS-1, NUM_COLS-3, 'J');
 	setCellChar(NUM_ROWS-1, NUM_COLS-2, 'N');
 	setCellChar(NUM_ROWS-1, NUM_COLS-1, 'M');
@@ -219,7 +251,8 @@ void handle_init(AppContextRef ctx) {
 
 void handle_deinit(AppContextRef ctx) {
 	int i;
-	fonts_unload_custom_font(customFont);
+	fonts_unload_custom_font(matrixFont);
+	fonts_unload_custom_font(digitFont);
 	for (i=0; i<NUM_BMP; i++) {
 		heap_bitmap_deinit(&bmp[i]);
 	}
